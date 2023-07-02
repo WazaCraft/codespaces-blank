@@ -1,34 +1,3 @@
-# Install the requests and html2text libraries
-!pip install requests html2text
-
-import requests
-import html2text
-
-# Define the URL
-url = "https://www.rssground.com/services/rss-converter/64a0a74cd5ee7/RSS-Payload"
-
-# Send a HTTP request to the URL
-response = requests.get(url)
-
-# Function to convert HTML to plain text
-def convert_html_to_txt(html_content):
-    # Create an html2text converter
-    converter = html2text.HTML2Text()
-    # Convert the HTML to text
-    return converter.handle(html_content)
-
-# Ensure the request was successful
-if response.status_code == 200:
-    # Convert the HTML content to plain text
-    text_content = convert_html_to_txt(response.text)
-    
-    # Open the output text file in write mode
-    with open("output.txt", "w", encoding='utf-8') as file:
-        # Write the plain text content to the file
-        file.write(text_content)
-else:
-    print(f"Failed to retrieve the URL, status code: {response.status_code}")
-
 # docsGpt.py - Contains the docsGpt functions and classes for document parsing
 # Author: Armin Norouzi, Farhad Davaripour 
 # Contact: https://github.com/Farhad-Davaripour/DocsGPT
@@ -146,24 +115,29 @@ def run_query(query, docsearch):
     return chain.run(input_documents=docs, question=query)
 
 
-
-def get_file_path(folder_path, file_name="output.txt"):
+def upload_file(folder_path):
     """
-    Gets the file path of output.txt if it exists in the given folder_path.
+    Uploads a file from the local file system and saves it to 
+    a folder path. 
     Args:
     - folder_path: A string representing the folder path where 
-    the file is located.
+    the file will be saved.
     Returns:
-    - A string representing the path of the file, or None if the file is not found.
+    - A string representing the path of the uploaded file.
     """
     
-    file_path = os.path.join(folder_path, file_name)
-    
-    if os.path.isfile(file_path):
-        return [file_path]
-    else:
-        print(f"File '{file_name}' not found in folder '{folder_path}'")
-        return None
+    uploaded = files.upload()
+    root_file = []
+
+    for filename, data in uploaded.items():
+        with open(filename, 'wb') as f:
+            f.write(data)
+        shutil.copy(filename, folder_path + "/")
+        root_file.append(folder_path + "/" + filename)
+        os.remove(filename)
+
+
+    return root_file
 
 
 def run_conversation(folder_path):
@@ -176,12 +150,10 @@ def run_conversation(folder_path):
     Returns:
     - Run conversation based on PDF
     """
-    root_files = get_file_path(folder_path)
+    root_files = upload_file(folder_path)
     # location of the pdf file/files.
 
-    if root_files is None:
-        return
-    
+
     docsearch = extract_texts(root_files)
 
     count = 0
@@ -202,4 +174,3 @@ def run_conversation(folder_path):
             for line in wrapped_text:
                 print(line)
             count += 1
-
